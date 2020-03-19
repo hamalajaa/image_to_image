@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+import utils
 
 class UnetLayer(nn.Module):
     
@@ -171,5 +172,118 @@ class Discriminator(nn.Module):
         
     def forward(self, input):
         return self.net(input)
+
+
+
+class GANLoss(nn.Module):
+    
+    def __init__(self, real_img_label=1., fake_img_label=0.):
+        super(GANLoss, self).__init__()
+        
+        # Save labels
+        self.register_buffer('real_img_label', torch.tensor(real_img_label))
+        self.register_buffer('fake_img_label', torch.tensor(fake_img_label))
+
+        # Use BCEWithLogitsLoss by default
+        self.loss = nn.BCEWithLogitsLoss()
+
+    def __call__(self, prediction, target_is_real):
+        
+        if target_is_real:
+            target = self.real_img_label
+        else:
+            target = self.fake_img_label
+
+        # Expand the target tensor to match prediction shape
+        target = target.expand(prediction.shape)
+        loss = self.loss(prediction, target)
+
+        return loss
+
+
+class ImageToImage(nn.Module):
+
+    def __init__(self, hps):
+        super(ImageToImage, self).__init__()
+
+        self.hps = hps
+        self.cuda_is_available = torch.cuda.is_available()
+
+        self.G = Unet(hps, hps.in_channels, hps.out_channels, hps.unet_out_f, hps.unet_depth, True).apply(utils.init_weights)
+        self.D = Discriminator(hps.in_channels + hps.out_channels).apply(utils.init_weights)
+
+        self.criterionGAN = GANLoss()
+        self.criterionL1 = nn.L1Loss()
+
+        if self.cuda_is_available:
+            self.G = self.G.cuda()
+            self.D = self.D.cuda()
+            self.criterionGAN = self.criterionGAN.cuda()
+            self.criterionL1 = self.criterionL1.cuda()
+
+        self.optimizer_G = optim.Adam(self.G.parameters(), lr=hps.lr, betas=(hps.beta1, hps.beta2))
+        self.optimizer_D = optim.Adam(self.D.parameters(), lr=hps.lr, betas=(hps.beta1, hps.beta2))
+
+
+    def forward(self, real_in, real_out):
+        """Forward pass G"""
+
+        self.real_in = real_in
+        self.real_out = real_out
+
+        self.fake_out = self.G(self.real_in)
+
+
+    def optimize_D(self):
+        """Calculate GAN loss for the discriminator"""
+        
+        utils.set_requires_grad(self.D, True)
+        self.optimizer_D.zero_grad()
+
+        fake_D_in = torch.cat((self.real_in, self.fake_out), 1)
+        pred_fake = self.D(fake_D_in.detach())
+        self.loss_D_fake = self.criterionGAN(pred_fake, False)
+        
+        real_D_in = torch.cat((self.real_in, self.real_out), 1)
+        pred_real = self.D(real_D_in)
+        self.loss_D_real = self.criterionGAN(pred_real, True)
+
+        self.loss_D = (self.loss_D_fake + self.loss_D_real) * 0.5
+        self.loss_D.backward()
+
+        self.optimizer_D.step()
+
+        utils.set_requires_grad(self.D, False)
+
+
+    def optimize_G(self):
+        """Calculate GAN and L1 loss for the generator"""
+
+        self.optimizer_G.zero_grad()
+
+        fake_D_in = torch.cat((self.real_in, self.fake_out), 1)
+        pred_fake = self.D(fake_D_in)
+
+        self.loss_G_GAN = self.criterionGAN(pred_fake, True)
+        self.loss_G_L1 = self.criterionL1(self.fake_out, self.real_out) * self.hps.lambda_L1
+        
+        self.loss_G = self.loss_G_GAN + self.loss_G_L1
+        self.loss_G.backward()
+
+        self.optimizer_G.step()
+
+
+    def optimize_parameters(self, real_in, real_out):
+
+        # G forward pass
+        self.forward(real_in, real_out)
+
+        # Optimize D params
+        self.optimize_D()
+
+        # Optimize G params
+        self.optimize_G()
+
+
 
 
