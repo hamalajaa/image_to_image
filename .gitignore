@@ -3,4 +3,4 @@
 __pycache__/
 *.csv
 *.sqlite
-/data
+/db
