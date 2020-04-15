@@ -19,23 +19,15 @@ class EdgeDataset(torch.utils.data.Dataset):
         return len(self.urls)
 
 def collate_fn(urls):
-
-    print("list of urls", len(urls))
-
     sources, targets = dp.filter_images(urls)
-    print(sources)
     sources = torch.tensor(sources)
     targets = torch.tensor(targets)
     print("sources", sources.shape)
     print("targets", targets.shape)
-
-    #normalize = transforms.Normalize((0.5,0.5, 0.5), (0.5,0.5, 0.5))
-    #sources = normalize(sources)
-    #targets = normalize(targets)
-
     return sources, targets
 
 
+# Uncomment and run 'python data_set.py' to test collate fn:
 ds = EdgeDataset('./db/captioned_urls.csv')
 dataloader = torch.utils.data.DataLoader(dataset=ds, batch_size=2, collate_fn=collate_fn, pin_memory=True)
 

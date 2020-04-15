@@ -8,6 +8,7 @@ from skimage import data
 from skimage.color import rgb2gray
 from scipy import ndimage as ndi
 from skimage import feature
+from skimage import util
 import skimage.io as io
 
 matplotlib.rcParams['font.size'] = 10
@@ -37,29 +38,45 @@ def filter_images(urls):
     """
 
     gaussian_sigma = 3
-
     load_pattern = urls
+
     try:
         ic = io.imread_collection(load_pattern, conserve_memory=True)
-        print("read images")
         filtered = []
         srcs = []
-        height = 650
-        width = 500
+
+        # find max dimensions for padding
+        height = -1
+        width = -1
         for img in ic:
-            w = img.shape[0]
-            h = img.shape[1]
-            print(w, h)
-            img = np.pad(img, (height - h, width - w), 'constant', constant_values=(0,0))
-            print("padded")
+            height = max(height, img.shape[0])
+            width = max(width, img.shape[1])
+
+        for img in ic:
+            
+            # image dimensions
+            w = img.shape[1]
+            h = img.shape[0]
+            c = img.shape[2]
+
+            # padding size
+            padding_h = int((height - h) / 2)
+            padding_w = int((width - w) / 2)
+
+            # init padding matrix with c channels
+            padding = np.zeros((height, width, c))
+
+            # insert image to padding matrix
+            padding[padding_h:(padding_h + h):,padding_w:(padding_w + w),:] = img
+            img = padding
+
             srcs.append(img)
             filtered.append(get_canny_filter(img, gaussian_sigma))
             
     except Exception as e:
         print(e)
-        print("Error occured")
         return [], []
-    print("Successfully filtered images")
+    
     return filtered, srcs
 
 def plot_paired(edges):
