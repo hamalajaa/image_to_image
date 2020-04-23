@@ -20,12 +20,13 @@ def get_canny_filter(img, gaussian_sigma):
     Applies Canny filter to one image.
     """
 
-    image = img
+    image = img.detach().cpu().numpy()
     # Check if image is RGB and convert to grayscale
-    if image.ndim == 3:
+    if image.shape[2] == 3:
         image = rgb2gray(image)
-        print('Gray')
-        print(image.shape)
+    
+    if image.ndim == 3 and image.shape[2] != 3:
+        image = image[:,:,0]
 
     edges = feature.canny(image, sigma=gaussian_sigma)
     return edges
@@ -43,19 +44,11 @@ def filter_images(imgs):
 
     gaussian_sigma = 3
     filtered = []
-    srcs = []
-    # find max dimensions for padding
-    # height = -1
-    # width = -1
-    # for img in ic:
-    #    height = max(height, img.shape[0])
-    #    width = max(width, img.shape[1])
+
     for img in imgs:
-        a = get_canny_filter(img, gaussian_sigma)
-        print('a.shape')
-        print(a.shape)
-        print('--------')
-        filtered.append(torch.tensor(get_canny_filter(img, gaussian_sigma)))
+        filtered_image = get_canny_filter(img, gaussian_sigma)
+
+        filtered.append(torch.tensor(filtered_image))
 
     return filtered, imgs
 
