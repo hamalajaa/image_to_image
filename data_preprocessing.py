@@ -10,6 +10,7 @@ from scipy import ndimage as ndi
 from skimage import feature
 from skimage import util
 import skimage.io as io
+from torchvision import transforms
 
 matplotlib.rcParams['font.size'] = 10
 
@@ -41,34 +42,36 @@ def filter_images(urls):
     load_pattern = urls
 
     try:
-        ic = io.imread_collection(load_pattern, conserve_memory=True)
+        
         filtered = []
         srcs = []
 
         # find max dimensions for padding
-        height = -1
-        width = -1
-        for img in ic:
-            height = max(height, img.shape[0])
-            width = max(width, img.shape[1])
+        #height = -1
+        #width = -1
+        #for img in ic:
+        #    height = max(height, img.shape[0])
+        #    width = max(width, img.shape[1])
 
         for img in ic:
             
+            img = transform(img)
+
             # image dimensions
-            w = img.shape[1]
-            h = img.shape[0]
-            c = img.shape[2]
+            #w = img.shape[1]
+            #h = img.shape[0]
+            #c = img.shape[2]
 
-            # padding size
-            padding_h = int((height - h) / 2)
-            padding_w = int((width - w) / 2)
+            ## padding size
+            #padding_h = int((height - h) / 2)
+            #padding_w = int((width - w) / 2)
 
-            # init padding matrix with c channels
-            padding = np.zeros((height, width, c))
+            ## init padding matrix with c channels
+            #padding = np.zeros((height, width, c))
 
-            # insert image to padding matrix
-            padding[padding_h:(padding_h + h):,padding_w:(padding_w + w),:] = img
-            img = padding
+            ## insert image to padding matrix
+            #padding[padding_h:(padding_h + h):,padding_w:(padding_w + w),:] = img
+            #img = padding
 
             srcs.append(img)
             filtered.append(get_canny_filter(img, gaussian_sigma))
