@@ -1,10 +1,13 @@
 import torch
 import torchvision.transforms as transforms
+import torchvision.transforms.functional as TF
 import pandas as pd
 import data_preprocessing as dp
 import skimage.io as io
 import os
+import numpy as np
 from torchvision import transforms
+import matplotlib.pyplot as plt
 
 """
 BAM dataset, images from URLs
@@ -99,14 +102,15 @@ class BirdBWDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         # get one image as np array
+        to_image = transforms.ToPILImage()
+        to_tensor = transforms.ToTensor()
+
         image = self.images[idx]
+        image = to_image(image)
         image = self.transform(image)
         
         # Create input image (target as black and white)
         bw_image = self.bw_transform(image)
-        
-        to_tensor = transforms.ToTensor()
-        
         image = to_tensor(image)
 
         # C * W * H -> W * H * C
@@ -128,26 +132,45 @@ class BirdBWDataset(torch.utils.data.Dataset):
         return len(self.images)
 
 
+def imshow(src, target, title=''):
+    """Plot the image batch.
+    """
+    plt.figure(figsize=(10, 10))
+    plt.title(title)
+    plt.imshow(src[0].permute(1,2,0))
+    plt.show()
+    plt.imshow(target[0].permute(1,2,0))
+    plt.show()
 
 # Uncomment and run 'python data_set.py' to test collate fn:
-width = 512
-height = 512
-transform = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.RandomCrop(
-        (height, width), pad_if_needed=True, padding_mode='constant')
-    #transforms.Grayscale(num_output_channels=1),
-    #transforms.ToTensor()
-])
-#ds = BirdEdgeDataset('./db/birds/dummy/', transform=transform)
+#width = 256
+#height = 256
+#transform = transforms.Compose([
+#    transforms.ToPILImage(),
+#    transforms.RandomCrop(
+#        (height, width), pad_if_needed=True, padding_mode='constant'),
+#    transforms.Grayscale(num_output_channels=1),
+#    transforms.ToTensor()
+#])
+#transform = transforms.Compose([
+#        transforms.RandomRotation(15),
+#        transforms.RandomHorizontalFlip(),
+#        transforms.ColorJitter(brightness=0.1, contrast=0.5, saturation=0, hue=0),
+#        transforms.RandomCrop(
+#            (width, height), pad_if_needed=True, padding_mode='constant')
+#])
+#
+#ds = BirdEdgeDataset('./db/birds/Warblers/', transform=transform)
+#print(ds.__len__())
 #dataloader = torch.utils.data.DataLoader(
 #    dataset=ds, batch_size=2, collate_fn=collate_fn, pin_memory=True)
-
-ds = BirdBWDataset('./db/birds/dummy/', transform=transform)
-dataloader = torch.utils.data.DataLoader(
-    dataset=ds, batch_size=2, pin_memory=True)
-
-for src, target in dataloader:
-    #print("data set testing loop", src.sum(), target.sum())
-    print(src.shape, target.shape)
-    break    #
+#
+#ds = BirdBWDataset('./db/birds/Warblers/', transform=transform)
+#dataloader = torch.utils.data.DataLoader(
+#    dataset=ds, batch_size=2, pin_memory=True)
+#
+#for src, target in dataloader:
+#    #print("data set testing loop", src.sum(), target.sum())
+#    print(src.shape, target.shape)
+#    imshow(src, target)
+#    break    #
