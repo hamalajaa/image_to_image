@@ -224,6 +224,9 @@ class ImageToImage(nn.Module):
         self.optimizer_G = optim.Adam(self.G.parameters(), lr=hps.lr, betas=(hps.beta1, hps.beta2))
         self.optimizer_D = optim.Adam(self.D.parameters(), lr=hps.lr, betas=(hps.beta1, hps.beta2))
 
+    def reload_optimizers_from_checkpoint(self, checkpoint):
+        self.optimizer_G.load_state_dict(checkpoint['optimizer_G_state_dict'])
+        self.optimizer_D.load_state_dict(checkpoint['optimizer_D_state_dict'])
 
     def forward(self, real_in, real_out):
         """Forward pass G"""
