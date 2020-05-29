@@ -44,7 +44,7 @@ class EdgeDataset(torch.utils.data.Dataset):
         return len(self.urls)
 
 """
-CUB2011
+CUB2011 edge-filling task
 """
 class BirdEdgeDataset(torch.utils.data.Dataset):
     def __init__(self, filename, transform):
@@ -70,26 +70,25 @@ class BirdEdgeDataset(torch.utils.data.Dataset):
 
 def collate_fn(imgs):
     """
+    Collate function for edge-filling task.
     Outputs sources and targets of shape [batch_size, n_channels, width, height]
     """
     sources, targets = dp.filter_images(imgs)
     
     sources = torch.stack(sources)
     targets = torch.stack(targets)
-    #print(sources.shape)
-    #print(targets.shape)
+
     targets = targets.repeat(1, 1, 1, 3)
     targets = targets.permute(0, 3, 1, 2)
     
     sources = sources.unsqueeze(3).repeat(1, 1, 1, 3)
-    #sources = sources.permute(0, 3, 1, 2).type(torch.FloatTensor)
     sources = sources.permute(0, 3, 1, 2).type(torch.FloatTensor)
-    #print(sources)
-    #print(sources.shape)
-    #print(targets.shape)
-    
+
     return sources, targets
 
+"""
+CUB2011, coloring task
+"""
 class BirdBWDataset(torch.utils.data.Dataset):
     def __init__(self, filename, transform):
         # read images to memory as np arrays
@@ -113,14 +112,9 @@ class BirdBWDataset(torch.utils.data.Dataset):
         bw_image = self.bw_transform(image)
         image = to_tensor(image)
 
-        # C * W * H -> W * H * C
-        #image = image.permute(1, 2, 0)
-        
         bw_image = to_tensor(bw_image)
 
-        # transofrm to C * W * H -> W * H * C
-        # and repeat the only channel to match input
-        #bw_image = bw_image.permute(1, 2, 0)
+        # Eepeat the only channel to match input
         bw_image = bw_image.repeat(3, 1, 1)
         
         # image: target
@@ -173,4 +167,4 @@ def imshow(src, target, title=''):
 #    #print("data set testing loop", src.sum(), target.sum())
 #    print(src.shape, target.shape)
 #    imshow(src, target)
-#    break    #
+#    break
